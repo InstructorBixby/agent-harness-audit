@@ -21,4 +21,7 @@ denominator, they survive a model update, and they are answerable in an
 afternoon from four artefacts: the context-assembly code, the tool
 registry, the authorisation path for one call, and one real trace.
 
-Early. Right now it is a data model and an argument.
+## state
+
+Early. The data model is in `ahaudit/model.py`; see `NOTES.md` for what
+the input and output are meant to be.
