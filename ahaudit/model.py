@@ -25,11 +25,11 @@ class Reach(str, Enum):
 class Trust(str, Enum):
     """Where a piece of context came from."""
 
-    SYSTEM = "system"          # the operator wrote it
-    PRINCIPAL = "principal"    # the requesting user wrote it
-    TENANT = "tenant"          # another user in the same tenant
-    RETRIEVED = "retrieved"    # a corpus the operator controls
-    EXTERNAL = "external"      # the open web, mail, a third party
+    SYSTEM = "system"
+    PRINCIPAL = "principal"
+    TENANT = "tenant"
+    RETRIEVED = "retrieved"
+    EXTERNAL = "external"
     TOOL_RESULT = "tool-result"
     TOOL_DEFINITION = "tool-definition"
 
@@ -43,11 +43,7 @@ class Trust(str, Enum):
 class Capability:
     name: str
     reach: Reach
-    # True if invoking it can move bytes to a party the requesting
-    # principal does not control. The egress leg.
     egress: bool = False
-    # True if it can read data the requesting principal could not
-    # otherwise obtain.
     sensitive_read: bool = False
 
 
@@ -55,9 +51,7 @@ class Capability:
 class Tool:
     name: str
     capabilities: list[Capability] = field(default_factory=list)
-    # Which identity the implementation authenticates as.
     runs_as: str = "unknown"
-    # Where the definition text came from.
     definition_source: str = "operator"
     requires_approval: bool = False
 
@@ -79,4 +73,34 @@ class Tool:
 @dataclass
 class Principal:
     name: str
-    kind: str = "user"          # user | service | operator
+    kind: str = "user"
+
+
+@dataclass
+class ContextSource:
+    """One kind of text that lands in a context window."""
+
+    name: str
+    trust: Trust
+    # Can a party other than the requesting principal write it?
+    third_party_writable: bool = False
+
+
+@dataclass
+class Context:
+    """A context window the harness assembles, with what goes in it."""
+
+    name: str
+    sources: list[ContextSource] = field(default_factory=list)
+    tools: list[str] = field(default_factory=list)
+    # Data in the context that the requesting principal could not
+    # otherwise obtain: system prompt, other tenants' documents,
+    # session identifiers.
+    holds_private_data: bool = False
+
+    def untrusted_sources(self) -> list[ContextSource]:
+        return [s for s in self.sources if s.trust.untrusted]
+
+    @property
+    def reads_untrusted(self) -> bool:
+        return bool(self.untrusted_sources())
