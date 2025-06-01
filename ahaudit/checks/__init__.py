@@ -39,4 +39,5 @@ def run_all(harness: Harness, only: list[str] | None = None
 
 
 def load_builtins() -> None:
-    from ahaudit.checks import attribution, contexts  # noqa: F401
+    from ahaudit.checks import (attribution, contexts,  # noqa: F401
+                                delegation)
