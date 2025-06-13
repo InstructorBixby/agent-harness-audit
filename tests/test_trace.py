@@ -1,3 +1,5 @@
+import pytest
+
 from ahaudit.checks import REGISTRY
 from ahaudit.findings import Severity
 
@@ -19,7 +21,6 @@ def test_missing_arguments_is_high(good):
 
 
 def test_missing_provenance_is_high(good):
-    good.trace.records_provenance = None  # not a field; ignored
     good.trace.records_context_provenance = False
     assert run(good)[0].severity is Severity.HIGH
 
@@ -30,11 +31,16 @@ def test_missing_result_is_low(good):
 
 
 def test_every_gap_is_reported(good):
-    for field in ("records_proposed_action",
-                  "records_context_provenance",
-                  "records_authz_decision",
-                  "records_executed_arguments",
-                  "records_result",
-                  "records_agent_identity"):
-        setattr(good.trace, field, False)
+    for f in ("records_proposed_action", "records_context_provenance",
+              "records_authz_decision", "records_executed_arguments",
+              "records_result", "records_agent_identity"):
+        setattr(good.trace, f, False)
     assert len(run(good)) == 6
+
+
+def test_a_typo_cannot_silently_add_a_field(good):
+    # This is why the model is slotted. A mistyped field name used to
+    # set a new attribute, the real field stayed false, and the check
+    # reported a finding that was not there.
+    with pytest.raises(AttributeError):
+        good.trace.records_provenance = False

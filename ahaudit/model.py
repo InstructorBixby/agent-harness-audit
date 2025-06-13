@@ -4,6 +4,10 @@ Everything downstream is a pure function of this. Deliberately explicit
 about the things harnesses leave implicit -- who a call is attributed
 to, what a context contains, what a delegate inherits -- because the
 implicit version is where the findings are.
+
+The dataclasses are slotted. A typo'd field name silently added an
+attribute and the check then read the real field as still-false, which
+is the failure mode where a tool reports a finding that is not there.
 """
 from __future__ import annotations
 
@@ -36,12 +40,10 @@ class Trust(str, Enum):
 
 
 class AuthzSubject(str, Enum):
-    """Whose entitlement the authorisation check evaluates."""
-
     REQUESTING_PRINCIPAL = "requesting-principal"
     SESSION = "session"
     SERVICE_IDENTITY = "service-identity"
-    MODEL_SUPPLIED = "model-supplied"   # the model picks the subject
+    MODEL_SUPPLIED = "model-supplied"
     NONE = "none"
 
 
@@ -52,7 +54,7 @@ class AuthzTiming(str, Enum):
     NEVER = "never"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Capability:
     name: str
     reach: Reach
@@ -60,7 +62,7 @@ class Capability:
     sensitive_read: bool = False
 
 
-@dataclass
+@dataclass(slots=True)
 class Tool:
     name: str
     capabilities: list[Capability] = field(default_factory=list)
@@ -83,20 +85,20 @@ class Tool:
                    key=order.index, default=Reach.NONE)
 
 
-@dataclass
+@dataclass(slots=True)
 class Principal:
     name: str
     kind: str = "user"
 
 
-@dataclass
+@dataclass(slots=True)
 class ContextSource:
     name: str
     trust: Trust
     third_party_writable: bool = False
 
 
-@dataclass
+@dataclass(slots=True)
 class Context:
     name: str
     sources: list[ContextSource] = field(default_factory=list)
@@ -111,19 +113,16 @@ class Context:
         return bool(self.untrusted_sources())
 
 
-@dataclass
+@dataclass(slots=True)
 class Authorisation:
     subject: AuthzSubject = AuthzSubject.NONE
     timing: AuthzTiming = AuthzTiming.NEVER
-    # Does a denial stop the loop, or does the loop retry?
     halts_on_denial: bool = False
-    enforced_by: str = "unknown"   # free text: where in the code
+    enforced_by: str = "unknown"
 
 
-@dataclass
+@dataclass(slots=True)
 class Delegation:
-    """What a sub-agent gets."""
-
     enabled: bool = False
     inherits_tools: bool = True
     inherits_credentials: bool = True
@@ -133,10 +132,8 @@ class Delegation:
     shares_budget: bool = False
 
 
-@dataclass
+@dataclass(slots=True)
 class Trace:
-    """Which of the five fields the harness actually records."""
-
     records_proposed_action: bool = False
     records_context_provenance: bool = False
     records_authz_decision: bool = False
@@ -146,28 +143,23 @@ class Trace:
 
     @property
     def missing(self) -> list[str]:
-        return [k for k, v in vars(self).items() if v is False]
+        return [f for f in self.__slots__
+                if getattr(self, f) is False]
 
     @property
     def reconstructable(self) -> bool:
         return not self.missing
 
 
-@dataclass
+@dataclass(slots=True)
 class Approval:
-    """How the harness asks a human."""
-
     enabled: bool = False
-    # Is the dialog text rendered from the structured call, or written
-    # by the model?
     renders_structured_call: bool = False
-    # Can the model decide whether approval is needed?
     model_can_skip: bool = False
-    # Roughly how many approvals an ordinary session produces.
     prompts_per_session: int = 0
 
 
-@dataclass
+@dataclass(slots=True)
 class Budget:
     steps: int | None = None
     tool_calls: int | None = None
@@ -175,7 +167,7 @@ class Budget:
     shared_across_delegates: bool = False
 
 
-@dataclass
+@dataclass(slots=True)
 class Harness:
     name: str
     tools: list[Tool] = field(default_factory=list)
