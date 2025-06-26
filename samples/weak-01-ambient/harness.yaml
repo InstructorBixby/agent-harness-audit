@@ -1,0 +1,73 @@
+# A support assistant, written the way they get written: one database
+# credential, tools granted for the session, and no record of who asked
+# for what. Nothing here is unusual; that is the point.
+harness:
+  name: weak-01-ambient
+  notes: |
+    Modelled on two real deployments. The tenant is chosen by an
+    argument the model fills in, which is how the access-control
+    decision ended up inside the model.
+
+  principals:
+    - name: alice
+      kind: user
+    - name: bob
+      kind: user
+    - name: support-svc
+      kind: service
+
+  tools:
+    - name: lookup_customer
+      runs_as: support-svc
+      capabilities:
+        - name: db-read
+          reach: local-read
+          sensitive_read: true
+    - name: send_email
+      runs_as: support-svc
+      capabilities:
+        - name: smtp
+          reach: external-network
+          egress: true
+    - name: fetch_url
+      runs_as: support-svc
+      capabilities:
+        - name: http
+          reach: external-network
+          egress: true
+
+  contexts:
+    - name: assistant
+      holds_private_data: true
+      tools: [lookup_customer, send_email, fetch_url]
+      sources:
+        - name: system-prompt
+          trust: system
+        - name: user-turn
+          trust: principal
+        - name: ticket-history
+          trust: tenant
+          third_party_writable: true
+        - name: fetched-pages
+          trust: external
+          third_party_writable: true
+        - name: tool-results
+          trust: tool-result
+
+  authorisation:
+    subject: model-supplied
+    timing: per-session
+    halts_on_denial: false
+    enforced_by: "tenant_id argument on lookup_customer"
+
+  delegation:
+    enabled: false
+
+  trace:
+    records_proposed_action: true
+    records_result: true
+
+  approval:
+    enabled: false
+
+  budget: {}
