@@ -1,0 +1,97 @@
+# A research assistant that spawns sub-agents to read pages. The
+# parent's boundary is reasonable; the children are handed the parent's
+# client and the parent's approval state, so the boundary is re-granted
+# one level down where nobody is looking.
+harness:
+  name: weak-02-delegation
+  notes: |
+    The parent context does not read untrusted content at all, which
+    looks like a clean separation on a diagram. The children do, and
+    they hold everything the parent holds.
+
+  principals:
+    - name: alice
+      kind: user
+
+  tools:
+    - name: web_fetch
+      runs_as: requesting-principal
+      capabilities:
+        - name: http
+          reach: external-network
+          egress: true
+    - name: read_notes
+      runs_as: requesting-principal
+      capabilities:
+        - name: fs-read
+          reach: local-read
+          sensitive_read: true
+    - name: write_notes
+      runs_as: requesting-principal
+      requires_approval: true
+      capabilities:
+        - name: fs-write
+          reach: local-write
+    - name: send_summary
+      runs_as: requesting-principal
+      requires_approval: true
+      capabilities:
+        - name: smtp
+          reach: external-network
+          egress: true
+
+  contexts:
+    - name: planner
+      holds_private_data: true
+      tools: [read_notes, write_notes, send_summary]
+      sources:
+        - name: system-prompt
+          trust: system
+        - name: user-turn
+          trust: principal
+    - name: researcher
+      holds_private_data: true
+      tools: [web_fetch, read_notes, write_notes, send_summary]
+      sources:
+        - name: system-prompt
+          trust: system
+        - name: sub-task
+          trust: principal
+        - name: fetched-pages
+          trust: external
+          third_party_writable: true
+        - name: tool-results
+          trust: tool-result
+
+  authorisation:
+    subject: requesting-principal
+    timing: per-call
+    halts_on_denial: true
+    enforced_by: "per-user token, checked in the tool wrapper"
+
+  delegation:
+    enabled: true
+    inherits_tools: true
+    inherits_credentials: true
+    inherits_context: true
+    inherits_approvals: true
+    attenuates: false
+    shares_budget: false
+
+  trace:
+    records_proposed_action: true
+    records_authz_decision: true
+    records_executed_arguments: true
+    records_result: true
+
+  approval:
+    enabled: true
+    renders_structured_call: true
+    model_can_skip: false
+    prompts_per_session: 3
+
+  budget:
+    steps: 30
+    tool_calls: 50
+    tokens: 500000
+    shared_across_delegates: false
