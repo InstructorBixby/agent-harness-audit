@@ -2,6 +2,33 @@
 
 Keep a Changelog format, semver versions.
 
+## [0.2.0]
+
+### Added
+- AHA-006 (composition): read-then-send and write-then-execute
+  pairs available in one context. Each call authorised, the
+  composition not.
+- AHA-007 (egress): external-network tools not declared as
+  egress, and the quiet ones -- search, telemetry, logging, error
+  reporting, link unfurling -- that are never on the list when I
+  ask which tools can send data out.
+- AHA-008 (budgets): unbounded loops, per-delegate budgets that
+  multiply under fan-out, and denials the loop can retry past.
+- JSON output (`--json`) against a published schema, with
+  `schema_version`, and `--fail-on` to pick the exit threshold.
+- `confidence` on every finding: declared, observed, or inferred.
+  A manifest is somebody's description of their own system and
+  the output should not pretend otherwise.
+- `samples/weak-02-delegation`, whose authorisation path is
+  deliberately correct so the findings are all about what a child
+  inherits.
+- `docs/threat-model.md`, `docs/findings-schema.md`.
+
+### Fixed
+- The model dataclasses are slotted. A mistyped field name used to
+  add an attribute silently, leaving the real field false and the
+  check reporting a finding that was not there.
+
 ## [0.1.0]
 
 First version that produces a report I would put in front of a
