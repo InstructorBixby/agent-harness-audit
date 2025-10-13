@@ -2,8 +2,9 @@
 
 Everything downstream is a pure function of this. Deliberately explicit
 about the things harnesses leave implicit -- who a call is attributed
-to, what a context contains, what a delegate inherits -- because the
-implicit version is where the findings are.
+to, what a context contains, what a delegate inherits, where a tool
+definition came from -- because the implicit version is where the
+findings are.
 
 The dataclasses are slotted. A typo'd field name silently added an
 attribute and the check then read the real field as still-false, which
@@ -13,6 +14,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+
+from ahaudit.definitions import DefinitionSet
 
 
 class Reach(str, Enum):
@@ -168,6 +171,23 @@ class Budget:
 
 
 @dataclass(slots=True)
+class Concurrency:
+    """What two tasks running at once share."""
+
+    workspace: bool = False
+    browser_profile: bool = False
+    memory_store: bool = False
+    cache: bool = False
+    cache_keyed_by_principal: bool = True
+
+    @property
+    def shared(self) -> list[str]:
+        return [f for f in ("workspace", "browser_profile",
+                            "memory_store", "cache")
+                if getattr(self, f)]
+
+
+@dataclass(slots=True)
 class Harness:
     name: str
     tools: list[Tool] = field(default_factory=list)
@@ -178,6 +198,8 @@ class Harness:
     trace: Trace = field(default_factory=Trace)
     approval: Approval = field(default_factory=Approval)
     budget: Budget = field(default_factory=Budget)
+    concurrency: Concurrency = field(default_factory=Concurrency)
+    definitions: DefinitionSet | None = None
     notes: str = ""
 
     def tool(self, name: str) -> Tool | None:
