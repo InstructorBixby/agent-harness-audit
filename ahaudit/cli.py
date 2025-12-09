@@ -5,7 +5,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from ahaudit import manifest, report, serialise
+from ahaudit import introspect, manifest, report, serialise
 from ahaudit.checks import REGISTRY, TITLES, load_builtins, run_all
 from ahaudit.findings import Severity
 
@@ -20,13 +20,14 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--check", action="append", default=[],
                     metavar="ID", help="only run these checks")
     ap.add_argument("--list-checks", action="store_true")
+    ap.add_argument("--tools-list", metavar="PATH",
+                    help="a tools/list dump to compare against the "
+                         "declared definitions")
+    ap.add_argument("--tools-server", default="unknown")
     ap.add_argument("--markdown", metavar="PATH")
-    ap.add_argument("--json", metavar="PATH",
-                    help="write the machine-readable document here; "
-                         "'-' for stdout")
+    ap.add_argument("--json", metavar="PATH")
     ap.add_argument("--fail-on", default="medium",
-                    choices=[s.value for s in Severity],
-                    help="lowest severity that exits non-zero")
+                    choices=[s.value for s in Severity])
     ap.add_argument("--quiet", action="store_true")
     return ap
 
@@ -56,11 +57,25 @@ def main(argv: list[str] | None = None) -> int:
         print(f"manifest: {exc}", file=sys.stderr)
         return EXIT_USAGE
 
+    notes: list[str] = []
+    if args.tools_list:
+        try:
+            observed = introspect.load(args.tools_list,
+                                       server=args.tools_server)
+        except (OSError, ValueError) as exc:
+            print(f"tools-list: {exc}", file=sys.stderr)
+            return EXIT_USAGE
+        harness.definitions, notes = introspect.merge(
+            harness.definitions, observed)
+        for n in notes:
+            print(f"definitions: {n}", file=sys.stderr)
+
     findings = run_all(harness, args.check or None)
 
     if args.markdown:
         Path(args.markdown).write_text(
-            report.markdown(harness, findings), encoding="utf-8")
+            report.markdown(harness, findings, notes=notes),
+            encoding="utf-8")
     if args.json:
         text = serialise.dumps(harness, findings)
         if args.json == "-":

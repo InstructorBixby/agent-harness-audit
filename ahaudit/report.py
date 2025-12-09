@@ -23,7 +23,8 @@ def text_summary(harness: Harness, findings: list[Finding]) -> str:
     return "\n".join(lines)
 
 
-def markdown(harness: Harness, findings: list[Finding]) -> str:
+def markdown(harness: Harness, findings: list[Finding], *,
+             notes: list[str] | None = None) -> str:
     out = [f"# Harness audit: {harness.name}", ""]
     counts = Counter(f.severity.value for f in findings)
     out += ["| severity | count |", "|---|---|"]
@@ -31,9 +32,14 @@ def markdown(harness: Harness, findings: list[Finding]) -> str:
         out.append(f"| {s.value} | {counts.get(s.value, 0)} |")
     out.append("")
 
+    if notes:
+        out += ["## definition comparison", ""]
+        out += [f"- {n}" for n in notes]
+        out.append("")
+
     if not findings:
         out += ["No findings. Note what that does and does not mean: "
-                "every check here is a question about the declared "
+                "every declared check is a question about the "
                 "manifest, so a clean result means the declaration is "
                 "sound, not that the implementation matches it.", ""]
         return "\n".join(out)
@@ -51,6 +57,16 @@ def markdown(harness: Harness, findings: list[Finding]) -> str:
         ]
         if f.remediation:
             out += ["### remediation", "", f.remediation, ""]
+
+    out += ["## appendix: taxonomy cross-reference", "",
+            "Ids are from llm-redteam-notes, so a structural finding "
+            "here and a measured rate from promptfuzz go into a report "
+            "as one argument rather than two.", "",
+            "| check | related |", "|---|---|"]
+    for f in sort_findings(findings):
+        if f.taxonomy:
+            out.append(f"| {f.check} | {', '.join(f.taxonomy)} |")
+    out.append("")
     return "\n".join(out)
 
 
