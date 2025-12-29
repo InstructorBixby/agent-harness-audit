@@ -40,6 +40,6 @@ def run_all(harness: Harness, only: list[str] | None = None
 
 def load_builtins() -> None:
     from ahaudit.checks import (approval, attribution,  # noqa: F401
-                                budget, composition, contexts,
-                                definitions, delegation, egress,
-                                namespace, trace)
+                                budget, composition, concurrency,
+                                contexts, definitions, delegation,
+                                egress, namespace, trace)
