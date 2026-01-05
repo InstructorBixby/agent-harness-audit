@@ -2,6 +2,34 @@
 
 Keep a Changelog format, semver versions.
 
+## [0.3.0]
+
+### Added
+- Tool definitions as a first-class part of the model: where a
+  definition came from, whether the approved set is pinned, when
+  it is re-read, how approval is scoped, and whether the approval
+  UI shows the text that reaches the model.
+- AHA-009 (definition pinning) and AHA-010 (namespace collisions,
+  confusable names, descriptions claiming to supersede a sibling).
+- `ahaudit.introspect`: parse a tools/list dump and diff it
+  against the declared definitions. Findings from it are
+  `observed` rather than `declared`.
+- `--tools-list` / `--tools-server`.
+- AHA-011 (concurrency): workspace, browser profile, memory store
+  and cache shared between concurrent runs, and caches with no
+  principal in the key.
+- `samples/weak-03-server`, whose declared structure is sound and
+  whose context text is written by somebody else.
+- Taxonomy cross-reference appendix in the markdown report.
+
+### Changed
+- The manifest rejects unknown keys. A misspelled section that is
+  silently ignored produces a clean report about a harness nobody
+  described, which is worse than an error.
+- Definition digests are computed over a canonical serialisation
+  with sorted keys, so two hosts listing the same tools in a
+  different order produce the same hash.
+
 ## [0.2.0]
 
 ### Added
