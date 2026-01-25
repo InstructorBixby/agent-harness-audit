@@ -5,7 +5,8 @@ import argparse
 import sys
 from pathlib import Path
 
-from ahaudit import introspect, manifest, report, serialise
+from ahaudit import introspect, manifest, policy, report, serialise
+from ahaudit.baseline import Baseline
 from ahaudit.checks import REGISTRY, TITLES, load_builtins, run_all
 from ahaudit.findings import Severity
 
@@ -24,6 +25,12 @@ def build_parser() -> argparse.ArgumentParser:
                     help="a tools/list dump to compare against the "
                          "declared definitions")
     ap.add_argument("--tools-server", default="unknown")
+    ap.add_argument("--policy", metavar="PATH",
+                    help="severity overrides and disabled checks")
+    ap.add_argument("--baseline", metavar="PATH",
+                    help="accepted findings; only new ones fail")
+    ap.add_argument("--write-baseline", metavar="PATH",
+                    help="write the current findings as a baseline")
     ap.add_argument("--markdown", metavar="PATH")
     ap.add_argument("--json", metavar="PATH")
     ap.add_argument("--fail-on", default="medium",
@@ -53,11 +60,12 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         harness = manifest.load(args.manifest)
-    except manifest.ManifestError as exc:
-        print(f"manifest: {exc}", file=sys.stderr)
+        pol = policy.load(args.policy) if args.policy else policy.Policy()
+    except (manifest.ManifestError, policy.PolicyError) as exc:
+        print(str(exc), file=sys.stderr)
         return EXIT_USAGE
 
-    notes: list[str] = []
+    notes: list[str] = list(pol.notes())
     if args.tools_list:
         try:
             observed = introspect.load(args.tools_list,
@@ -65,12 +73,22 @@ def main(argv: list[str] | None = None) -> int:
         except (OSError, ValueError) as exc:
             print(f"tools-list: {exc}", file=sys.stderr)
             return EXIT_USAGE
-        harness.definitions, notes = introspect.merge(
+        harness.definitions, diff_notes = introspect.merge(
             harness.definitions, observed)
-        for n in notes:
-            print(f"definitions: {n}", file=sys.stderr)
+        notes += diff_notes
 
-    findings = run_all(harness, args.check or None)
+    findings = pol.apply(run_all(harness, args.check or None))
+
+    if args.write_baseline:
+        Baseline.from_findings(findings).save(args.write_baseline)
+
+    failing = findings
+    if args.baseline and Path(args.baseline).exists():
+        base = Baseline.load(args.baseline)
+        failing, known = base.split(findings)
+        notes += [f"{len(known)} finding(s) accepted by the baseline"]
+        notes += [f"baselined but no longer present: {t}"
+                  for t in base.stale(findings)]
 
     if args.markdown:
         Path(args.markdown).write_text(
@@ -84,10 +102,12 @@ def main(argv: list[str] | None = None) -> int:
             Path(args.json).write_text(text, encoding="utf-8")
 
     if not args.quiet and args.json != "-":
+        for n in notes:
+            print(f"note: {n}", file=sys.stderr)
         print(report.text_summary(harness, findings))
 
     floor = Severity(args.fail_on).rank
-    worst = max((f.severity.rank for f in findings), default=-1)
+    worst = max((f.severity.rank for f in failing), default=-1)
     return EXIT_FINDINGS if worst >= floor else EXIT_OK
 
 
