@@ -42,4 +42,5 @@ def load_builtins() -> None:
     from ahaudit.checks import (approval, attribution,  # noqa: F401
                                 budget, composition, concurrency,
                                 contexts, definitions, delegation,
-                                egress, namespace, provenance, trace)
+                                egress, namespace, provenance,
+                                results, trace)
