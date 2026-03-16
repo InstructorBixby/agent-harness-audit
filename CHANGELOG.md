@@ -2,6 +2,23 @@
 
 Keep a Changelog format, semver versions.
 
+## [0.4.0]
+
+### Added
+- AHA-012 (provenance available to authorisation, not just as a
+  label in the prompt) and AHA-013 (tool results and error
+  strings re-entering a context that holds capability).
+- Severity policy (`--policy`): overrides and disabled checks,   with a mandatory reason for a disable. An override is recorded
+  in the finding; a tool whose severities can be edited
+  invisibly is a tool whose output means nothing.
+- Baselines (`--baseline`, `--write-baseline`), fingerprinted on
+  the structure rather than the title, so rewording a finding
+  does not un-baseline it. Stale baseline entries are reported.
+- The blast-radius inventory in the markdown report: every tool,
+  its identity, its reach, which untrusted contexts expose it,
+  and a blank column for the narrowest version that still works.
+- `docs/methodology.md`, `docs/ci.md`.
+
 ## [0.3.0]
 
 ### Added
