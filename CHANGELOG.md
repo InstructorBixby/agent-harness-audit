@@ -2,6 +2,19 @@
 
 Keep a Changelog format, semver versions.
 
+## [0.5.0]
+
+### Added
+- `ahaudit.probe`: checks that read an artefact rather than the
+  declaration, producing `observed` findings. Still no network and
+  no model -- a probe takes a file.
+- `--trace`: compare what the manifest says the trace records
+  against what a real trace contains. The two disagree often
+  enough that asking for one trace is now the first thing I do,
+  and a manifest that overstates the trace makes every other
+  finding less reliable.
+- `docs/manifest.md`.
+
 ## [0.4.0]
 
 ### Added
