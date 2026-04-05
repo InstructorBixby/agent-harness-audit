@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
-from ahaudit import introspect, manifest, policy, report, serialise
+from ahaudit import introspect, manifest, policy, probe, report
+from ahaudit import serialise
 from ahaudit.baseline import Baseline
 from ahaudit.checks import REGISTRY, TITLES, load_builtins, run_all
 from ahaudit.findings import Severity
@@ -19,18 +21,15 @@ def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="ahaudit")
     ap.add_argument("manifest", nargs="?", help="harness manifest yaml")
     ap.add_argument("--check", action="append", default=[],
-                    metavar="ID", help="only run these checks")
+                    metavar="ID")
     ap.add_argument("--list-checks", action="store_true")
-    ap.add_argument("--tools-list", metavar="PATH",
-                    help="a tools/list dump to compare against the "
-                         "declared definitions")
+    ap.add_argument("--tools-list", metavar="PATH")
     ap.add_argument("--tools-server", default="unknown")
-    ap.add_argument("--policy", metavar="PATH",
-                    help="severity overrides and disabled checks")
-    ap.add_argument("--baseline", metavar="PATH",
-                    help="accepted findings; only new ones fail")
-    ap.add_argument("--write-baseline", metavar="PATH",
-                    help="write the current findings as a baseline")
+    ap.add_argument("--trace", metavar="PATH",
+                    help="a trace of one real task, as json")
+    ap.add_argument("--policy", metavar="PATH")
+    ap.add_argument("--baseline", metavar="PATH")
+    ap.add_argument("--write-baseline", metavar="PATH")
     ap.add_argument("--markdown", metavar="PATH")
     ap.add_argument("--json", metavar="PATH")
     ap.add_argument("--fail-on", default="medium",
@@ -41,6 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     load_builtins()
+    probe.load_builtins()
     args = build_parser().parse_args(argv)
 
     if args.list_checks:
@@ -66,6 +66,8 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_USAGE
 
     notes: list[str] = list(pol.notes())
+    artefacts: dict = {}
+
     if args.tools_list:
         try:
             observed = introspect.load(args.tools_list,
@@ -77,7 +79,17 @@ def main(argv: list[str] | None = None) -> int:
             harness.definitions, observed)
         notes += diff_notes
 
-    findings = pol.apply(run_all(harness, args.check or None))
+    if args.trace:
+        try:
+            artefacts["trace"] = json.loads(
+                Path(args.trace).read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            print(f"trace: {exc}", file=sys.stderr)
+            return EXIT_USAGE
+
+    findings = run_all(harness, args.check or None)
+    findings += probe.run_all(harness, artefacts)
+    findings = pol.apply(findings)
 
     if args.write_baseline:
         Baseline.from_findings(findings).save(args.write_baseline)
@@ -86,7 +98,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.baseline and Path(args.baseline).exists():
         base = Baseline.load(args.baseline)
         failing, known = base.split(findings)
-        notes += [f"{len(known)} finding(s) accepted by the baseline"]
+        notes.append(f"{len(known)} finding(s) accepted by the "
+                     f"baseline")
         notes += [f"baselined but no longer present: {t}"
                   for t in base.stale(findings)]
 
