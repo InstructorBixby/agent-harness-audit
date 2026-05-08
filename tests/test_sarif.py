@@ -36,7 +36,7 @@ def test_severity_survives_in_properties():
     result = doc["runs"][0]["results"][0]
     assert result["level"] == "error"
     assert result["properties"]["severity"] == "critical"
-    assert result["rank"] > doc and True or True  # rank is numeric
+    assert isinstance(result["rank"], float)
 
 
 def test_critical_outranks_high():
@@ -58,3 +58,4 @@ def test_location_is_the_manifest():
 def test_no_findings_is_still_a_valid_run():
     doc = sarif.document([], manifest_path="h.yaml")
     assert doc["runs"][0]["results"] == []
+    assert doc["runs"][0]["tool"]["driver"]["rules"] == []
