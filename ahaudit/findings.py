@@ -25,18 +25,14 @@ class Severity(str, Enum):
 
 @dataclass
 class Finding:
-    check: str                    # AHA-001
+    check: str
     title: str
     severity: Severity
-    # The structural claim, in one sentence, with no hedging.
     claim: str
-    # Where in the model it came from, so a reader can argue with it.
     evidence: dict = field(default_factory=dict)
     remediation: str = ""
-    # Ids from the llm-redteam-notes taxonomy, so a report can carry
-    # one argument instead of two.
     taxonomy: list[str] = field(default_factory=list)
-    confidence: str = "declared"  # declared | observed | inferred
+    confidence: str = "declared"
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -45,4 +41,15 @@ class Finding:
 
 
 def sort_findings(findings: list[Finding]) -> list[Finding]:
-    return sorted(findings, key=lambda f: (-f.severity.rank, f.check))
+    """Worst first, then stable.
+
+    Two findings from the same check at the same severity used to come
+    out in whichever order the dict happened to yield, so the same
+    manifest produced different reports on different runs and the
+    committed sample reports churned. Title and then the evidence's
+    string form break the tie.
+    """
+    return sorted(
+        findings,
+        key=lambda f: (-f.severity.rank, f.check, f.title,
+                       repr(sorted(f.evidence.items()))))
