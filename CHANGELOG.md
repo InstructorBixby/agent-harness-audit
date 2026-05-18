@@ -2,6 +2,25 @@
 
 Keep a Changelog format, semver versions.
 
+## [1.0.0]
+
+No new features.
+
+The model has not changed shape in months, the check interface
+has not changed since 0.2, the findings schema has consumers, and
+the check ids are quoted in other people's tickets. See
+`docs/stability.md` for what that now promises and what it
+deliberately does not.
+
+### Added
+- SARIF 2.1.0 output, so a pipeline that already ingests it shows
+  these findings without anyone building anything.
+
+### Fixed
+- Findings with the same check and severity sorted unstably, so
+  the same manifest produced different reports on different runs
+  and the committed sample reports churned.
+
 ## [0.5.0]
 
 ### Added
