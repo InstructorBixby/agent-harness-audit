@@ -6,8 +6,8 @@ import json
 import sys
 from pathlib import Path
 
-from ahaudit import introspect, manifest, policy, probe, report
-from ahaudit import serialise
+from ahaudit import (introspect, manifest, plugins, policy, probe,
+                     report, sarif, serialise)
 from ahaudit.baseline import Baseline
 from ahaudit.checks import REGISTRY, TITLES, load_builtins, run_all
 from ahaudit.findings import Severity
@@ -23,15 +23,17 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--check", action="append", default=[],
                     metavar="ID")
     ap.add_argument("--list-checks", action="store_true")
+    ap.add_argument("--no-plugins", action="store_true",
+                    help="skip out-of-tree checks")
     ap.add_argument("--tools-list", metavar="PATH")
     ap.add_argument("--tools-server", default="unknown")
-    ap.add_argument("--trace", metavar="PATH",
-                    help="a trace of one real task, as json")
+    ap.add_argument("--trace", metavar="PATH")
     ap.add_argument("--policy", metavar="PATH")
     ap.add_argument("--baseline", metavar="PATH")
     ap.add_argument("--write-baseline", metavar="PATH")
     ap.add_argument("--markdown", metavar="PATH")
     ap.add_argument("--json", metavar="PATH")
+    ap.add_argument("--sarif", metavar="PATH")
     ap.add_argument("--fail-on", default="medium",
                     choices=[s.value for s in Severity])
     ap.add_argument("--quiet", action="store_true")
@@ -42,6 +44,13 @@ def main(argv: list[str] | None = None) -> int:
     load_builtins()
     probe.load_builtins()
     args = build_parser().parse_args(argv)
+
+    notes: list[str] = []
+    if not args.no_plugins:
+        installed = plugins.install() + plugins.install_probes()
+        if installed:
+            notes.append("out-of-tree checks installed: "
+                         + ", ".join(installed))
 
     if args.list_checks:
         for cid in sorted(REGISTRY):
@@ -65,7 +74,7 @@ def main(argv: list[str] | None = None) -> int:
         print(str(exc), file=sys.stderr)
         return EXIT_USAGE
 
-    notes: list[str] = list(pol.notes())
+    notes += pol.notes()
     artefacts: dict = {}
 
     if args.tools_list:
@@ -113,6 +122,10 @@ def main(argv: list[str] | None = None) -> int:
             print(text)
         else:
             Path(args.json).write_text(text, encoding="utf-8")
+    if args.sarif:
+        Path(args.sarif).write_text(
+            sarif.dumps(findings, manifest_path=args.manifest),
+            encoding="utf-8")
 
     if not args.quiet and args.json != "-":
         for n in notes:
