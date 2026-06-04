@@ -2,6 +2,16 @@
 
 Keep a Changelog format, semver versions.
 
+## [1.1.0]
+
+### Added
+- Out-of-tree checks and probes via entry points, with `AHA-*`
+  reserved. A plugin that fails to import warns, is skipped, and
+  the skip appears in the report notes -- a silently missing
+  check produces a clean result that never ran.
+- `--sarif`, `--no-plugins`.
+- `docs/plugins.md`, `docs/stability.md`.
+
 ## [1.0.0]
 
 No new features.
