@@ -1,0 +1,119 @@
+# A coding assistant. The worst-case composition: it reads untrusted
+# text (the repo, the issue, the dependency), holds broad capability,
+# and runs a long loop with an append-only context.
+harness:
+  name: weak-04-coding
+  notes: |
+    Authority is per call against the user, which is better than most.
+    Everything else about it is the problem: one workspace reused
+    across runs, a rules file inside that workspace that the harness
+    reads for its own configuration, and egress open for package
+    installation.
+
+  principals:
+    - name: dev
+      kind: user
+
+  tools:
+    - name: read_file
+      runs_as: requesting-principal
+      capabilities:
+        - name: fs-read
+          reach: local-read
+          sensitive_read: true
+    - name: write_file
+      runs_as: requesting-principal
+      capabilities:
+        - name: fs-write
+          reach: local-write
+    - name: run_command
+      runs_as: requesting-principal
+      capabilities:
+        - name: shell
+          reach: execute
+          egress: true
+    - name: web_search
+      runs_as: service
+      capabilities:
+        - name: search
+          reach: external-network
+
+  contexts:
+    - name: agent
+      holds_private_data: true
+      tools: [read_file, write_file, run_command, web_search]
+      sources:
+        - name: system-prompt
+          trust: system
+        - name: rules-file
+          trust: retrieved
+          third_party_writable: true
+        - name: user-turn
+          trust: principal
+        - name: repository
+          trust: external
+          third_party_writable: true
+        - name: issue-text
+          trust: external
+          third_party_writable: true
+        - name: tool-results
+          trust: tool-result
+
+  authorisation:
+    subject: requesting-principal
+    timing: per-call
+    halts_on_denial: false
+    enforced_by: "tool wrapper, per-user token"
+
+  delegation:
+    enabled: true
+    inherits_tools: true
+    inherits_credentials: true
+    inherits_context: false
+    inherits_approvals: true
+    attenuates: false
+    shares_budget: false
+
+  trace:
+    records_proposed_action: true
+    records_authz_decision: true
+    records_result: true
+
+  approval:
+    enabled: true
+    renders_structured_call: false
+    model_can_skip: false
+    prompts_per_session: 35
+
+  budget:
+    steps: 200
+
+  concurrency:
+    workspace: true
+    cache: true
+    cache_keyed_by_principal: true
+
+  definitions:
+    pinned_digest: null
+    reread_on_reconnect: false
+    reread_on_notification: false
+    namespaced_by_server: true
+    approval_scope: tool
+    shows_description_at_approval: true
+    tools:
+      - name: run_command
+        server: local
+        source: operator
+        description: "Run a shell command in the workspace."
+        parameters:
+          command:
+            type: string
+      - name: write_file
+        server: local
+        source: operator
+        description: "Write a file in the workspace."
+        parameters:
+          path:
+            type: string
+          contents:
+            type: string
