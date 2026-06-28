@@ -33,16 +33,23 @@ def rows(harness: Harness) -> list[dict]:
             "contexts": exposed_in,
             "untrusted_contexts": untrusted_in,
         })
+    # Reach, then egress, then exposure to untrusted content, then
+    # name. The previous key stopped at egress, so two tools with the
+    # same reach came out in declaration order and the committed sample
+    # reports changed whenever a manifest was reordered.
     out.sort(key=lambda r: (-RISK_ORDER[Reach(r["reach"])],
-                            not r["egress"], r["tool"]))
+                            not r["egress"],
+                            -len(r["untrusted_contexts"]),
+                            r["tool"]))
     return out
 
 
 def markdown(harness: Harness) -> str:
     lines = [
         "## blast-radius inventory", "",
-        "Ordered by reach. The last column is for the engineer who "
-        "owns the tool, not for this tool to guess.", "",
+        "Ordered by reach, then by whether it can send data out, then "
+        "by exposure to untrusted content. The last column is for the "
+        "engineer who owns the tool, not for this tool to guess.", "",
         "| tool | runs as | reach | egress | sensitive read | approval "
         "| exposed to untrusted content | narrowest version that still "
         "works |",
