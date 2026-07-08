@@ -2,6 +2,21 @@
 
 Keep a Changelog format, semver versions.
 
+## [1.1.1]
+
+### Added
+- AHA-014 (argument surface): free-text string, object or array
+  parameters on tools that can write, execute or send data out.
+  Cheap to review and usually closed with 'this was always meant
+  to be an id'.
+- `samples/weak-04-coding`, the most realistic of the samples: a
+  correct authorisation path and a five-step chain through
+  everything else.
+
+### Fixed
+- Inventory ordering was ambiguous for tools with equal reach, so
+  reordering a manifest changed a committed sample report.
+
 ## [1.1.0]
 
 ### Added
