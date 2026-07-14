@@ -1,0 +1,7 @@
+# Pinned dev tooling so a ruff release does not turn an unrelated
+# commit red. Bumped deliberately, with the fixes in the same commit.
+#
+#   uv pip install -e ".[dev]" -c constraints-dev.txt
+ruff==0.6.9
+pytest==8.3.3
+jsonschema==4.23.0

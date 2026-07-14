@@ -10,6 +10,19 @@ test:
   before_script:
     - pip install uv
   script:
-    - uv pip install --system -e ".[dev]"
+    - uv pip install --system -e ".[dev]" -c constraints-dev.txt
     - ruff check .
     - pytest -q
+
+outdated:
+  # Monthly scheduled pipeline. It only reports what has moved past
+  # the pins; bumping stays a deliberate commit with the fixes in it.
+  stage: test
+  image: python:3.12
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  before_script:
+    - pip install uv
+  script:
+    - uv pip install --system -e ".[dev]"
+    - uv pip list --outdated
