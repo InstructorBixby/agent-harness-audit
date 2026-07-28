@@ -1,28 +1,53 @@
 stages:
   - test
 
+variables:
+  UV_CACHE_DIR: "$CI_PROJECT_DIR/.uv-cache"
+
+.uv:
+  before_script:
+    - pip install uv
+  cache:
+    key:
+      files:
+        - pyproject.toml
+        - constraints-dev.txt
+    paths:
+      - .uv-cache
+
 test:
+  extends: .uv
   stage: test
   image: python:$PY
   parallel:
     matrix:
       - PY: ["3.11", "3.12", "3.13"]
-  before_script:
-    - pip install uv
   script:
     - uv pip install --system -e ".[dev]" -c constraints-dev.txt
     - ruff check .
     - pytest -q
 
+samples:
+  extends: .uv
+  stage: test
+  image: python:3.12
+  script:
+    - uv pip install --system -e ".[dev]" -c constraints-dev.txt
+    # Every sample must still produce findings. A sample that goes
+    # quiet means either it was fixed by accident or a check
+    # regressed, and both want a red build.
+    - |
+      for m in samples/*/harness.yaml; do
+        echo "== $m"
+        ahaudit "$m" --quiet || test $? -eq 1
+      done
+
 outdated:
-  # Monthly scheduled pipeline. It only reports what has moved past
-  # the pins; bumping stays a deliberate commit with the fixes in it.
+  extends: .uv
   stage: test
   image: python:3.12
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
-  before_script:
-    - pip install uv
   script:
     - uv pip install --system -e ".[dev]"
     - uv pip list --outdated
