@@ -43,4 +43,4 @@ def load_builtins() -> None:
                                 attribution, budget, composition,
                                 concurrency, contexts, definitions,
                                 delegation, egress, namespace,
-                                provenance, results, trace)
+                                provenance, results, state, trace)
