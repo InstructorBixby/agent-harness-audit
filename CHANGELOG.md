@@ -2,6 +2,19 @@
 
 Keep a Changelog format, semver versions.
 
+## [1.2.0]
+
+### Added
+- AHA-015 (persistence): model output written into state the
+  harness reads back -- a workspace rules file, a shared memory
+  store. The composition that turns an incident into a condition.
+- `docs/faq.md`, `docs/bar.md`.
+- CI runs every sample on every push; a sample that stops
+  producing findings fails the build.
+
+### Changed
+- Dev tooling pinned in `constraints-dev.txt`.
+
 ## [1.1.1]
 
 ### Added
