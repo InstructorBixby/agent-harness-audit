@@ -8,20 +8,23 @@ whoever is filling it in, not for me.
 
 Unknown keys are an error, not a shrug. A misspelled section that is
 silently ignored produces a clean report about a harness nobody
-described.
+described -- with one exception: `authorization` is accepted as an
+alias for `authorisation`, because three people have now hit it and
+"unknown key: authorization" is a stupid thing to make somebody debug.
 """
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 
 import yaml
 
-from ahaudit.model_glue import definition_set
 from ahaudit.model import (Approval, Authorisation, AuthzSubject,
                            AuthzTiming, Budget, Capability,
                            Concurrency, Context, ContextSource,
                            Delegation, Harness, Principal, Reach, Tool,
                            Trace, Trust)
+from ahaudit.model_glue import definition_set
 
 
 class ManifestError(ValueError):
@@ -31,6 +34,8 @@ class ManifestError(ValueError):
 SECTIONS = {"name", "notes", "principals", "tools", "contexts",
             "authorisation", "delegation", "trace", "approval",
             "budget", "concurrency", "definitions"}
+
+ALIASES = {"authorization": "authorisation"}
 
 
 def _enum(cls, value, where: str):
@@ -50,6 +55,21 @@ def _only_known(d: dict, known: set[str], where: str) -> dict:
             f"{where}: unknown key(s) {', '.join(extra)}; known keys "
             f"are {', '.join(sorted(known))}")
     return d
+
+
+def _apply_aliases(h: dict) -> dict:
+    out = dict(h)
+    for alias, real in ALIASES.items():
+        if alias in out:
+            if real in out:
+                raise ManifestError(
+                    f"harness: both {alias!r} and {real!r} are "
+                    f"present; keep one")
+            warnings.warn(
+                f"manifest: {alias!r} is accepted as an alias for "
+                f"{real!r}; prefer {real!r}", stacklevel=3)
+            out[real] = out.pop(alias)
+    return out
 
 
 def _capability(d: dict, where: str) -> Capability:
@@ -125,7 +145,8 @@ def load(path: str | Path) -> Harness:
 def from_dict(raw: dict) -> Harness:
     if "harness" not in raw:
         raise ManifestError("manifest needs a top-level 'harness' key")
-    h = _only_known(raw["harness"], SECTIONS, "harness")
+    h = _only_known(_apply_aliases(raw["harness"]), SECTIONS,
+                    "harness")
 
     authz = _only_known(h.get("authorisation", {}),
                         set(Authorisation.__slots__), "authorisation")
