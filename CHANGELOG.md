@@ -2,6 +2,15 @@
 
 Keep a Changelog format, semver versions.
 
+## [1.2.1]
+
+### Changed
+- `authorization` is accepted as an alias for `authorisation`,
+  with a warning. Three people have now hit it, and the error
+  'unknown key: authorization' is a stupid thing to make somebody
+  debug.
+  Every other misspelling is still an error.
+
 ## [1.2.0]
 
 ### Added
