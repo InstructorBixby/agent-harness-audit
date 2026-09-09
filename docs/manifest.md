@@ -4,6 +4,9 @@ One YAML file describing the harness's authority model. Unknown keys
 are an error: a misspelled section that is silently ignored produces a
 clean report about a harness nobody described.
 
+One exception -- `authorization` is accepted as an alias for
+`authorisation`, with a warning. Every other spelling is an error.
+
 All defaults are pessimistic. An unspecified authority model is the
 dangerous one, so leaving a section out describes the dangerous case
 rather than a convenient one.
@@ -92,6 +95,7 @@ rather than a convenient one.
 | `tools[].egress` | the leg of the trifecta that is cheapest to remove. |
 | `delegation.*` | a boundary re-granted one level down. |
 | `trace.records_context_provenance` | whether an incident is reconstructable. |
+| `definitions.pinned_digest` | whether the text in the context is the text somebody approved. |
 
 ## filling it in honestly
 
@@ -102,3 +106,10 @@ way to get somebody to go and look.
 Where the answer is "it depends on the context", split the context.
 That is what contexts are for, and a harness with one context that
 holds everything is itself the finding.
+
+## keeping it current
+
+Put it in the repo next to the harness and review it like code. A pull
+request that touches the tool registry or the spawn path and not the
+manifest is incomplete -- that habit, rather than any check in here, is
+what makes the authority model stay true.
