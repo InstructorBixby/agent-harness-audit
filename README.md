@@ -17,7 +17,7 @@ second one has an answer that does not decay:
 
 ## install
 
-    pip install -e ".[dev]"
+    pip install -e ".[dev]" -c constraints-dev.txt
 
 ## use
 
@@ -31,7 +31,7 @@ second one has an answer that does not decay:
 
     # in a pipeline: fail on new findings only
     ahaudit harness.yaml --policy .audit/policy.yaml \
-        --baseline .audit/baseline.json --fail-on high
+        --baseline .audit/baseline.json --fail-on high --sarif out.sarif
 
 Exit status: `0` nothing at or above `--fail-on`, `1` otherwise, `2`
 bad usage, a bad manifest or a bad policy.
@@ -51,25 +51,20 @@ bad usage, a bad manifest or a bad policy.
     AHA-011  state shared between concurrent runs
     AHA-012  provenance not available to authorisation
     AHA-013  tool results re-enter the context unmarked
+    AHA-014  free-text arguments on tools with reach
+    AHA-015  write paths into state the harness reads back
 
 Each is a pure function from the model to findings -- no I/O, no
 network, no model -- which is what makes them testable against
-fixtures. See `docs/checks.md` for how a check earns an id.
+fixtures. Out-of-tree checks load from entry points
+(`docs/plugins.md`); `AHA-*` is reserved.
 
 ## confidence
 
 Every finding says where it came from: `declared` (the manifest says
 so), `observed` (the tool read a tools/list dump or a real trace), or
-`inferred` (a heuristic, e.g. a tool named like an egress path). A
-manifest is somebody's description of their own system and the output
-does not pretend otherwise.
-
-## the manifest
-
-One YAML file describing the authority model. Somebody has to write it
-down, and that is the point rather than the cost: on every engagement
-so far, filling it in has produced findings before the tool ran.
-`docs/manifest.md` is the reference; `samples/` has complete examples.
+`inferred` (a heuristic). A manifest is somebody's description of their
+own system and the output does not pretend otherwise.
 
 ## use it with promptfuzz
 
@@ -82,10 +77,21 @@ the second gets closed as "we tuned the prompt".
 
 | file | what |
 |---|---|
-| `docs/threat-model.md` | the assumption the tool is built on |
-| `docs/methodology.md` | how to run one of these, and in what order to read the output |
+| `docs/methodology.md` | how to run one, and what order to read the output in |
 | `docs/manifest.md` | every field |
 | `docs/checks.md` | the catalogue, severities, confidence |
+| `docs/threat-model.md` | the assumption the tool is built on |
 | `docs/findings-schema.md` | the JSON output |
 | `docs/ci.md` | gating on new findings |
+| `docs/plugins.md` | writing a check |
+| `docs/stability.md` | what the version number promises |
+| `docs/faq.md` | the questions I get asked |
+| `docs/bar.md` | the bar for a new check or model field |
 | `NOTES.md` | why it is shaped like this |
+
+## samples
+
+`samples/` holds deliberately-vulnerable harnesses, each wrong in a
+named way. `reports/` holds their generated reports, committed so a
+change in the output format shows up in a diff. CI runs every sample on
+every push: a sample that stops producing findings fails the build.
