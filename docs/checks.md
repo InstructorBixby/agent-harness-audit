@@ -13,6 +13,13 @@ harness model to findings.
 | AHA-006 | do two authorised tools compose into something unauthorised |
 | AHA-007 | which paths can move bytes outward |
 | AHA-008 | is the loop bounded, and is a denial terminal |
+| AHA-009 | are tool definitions pinned after approval |
+| AHA-010 | do two sources of tools share a namespace |
+| AHA-011 | what do concurrent runs share |
+| AHA-012 | is provenance available to authorisation, or only to the prompt |
+| AHA-013 | do tool results and errors re-enter a context with capability |
+| AHA-014 | how wide is a tool's argument surface |
+| AHA-015 | can model output reach state the harness reads back |
 
 ## how a check earns its id
 
@@ -28,7 +35,7 @@ harness model to findings.
 ## severities
 
 Advisory, and the tool says so. It cannot know what a tool reaches in
-the client's world; `send_email` to a fixed internal address and
+the client's world; `send_email` to one fixed internal address and
 `send_email` to an arbitrary recipient are the same manifest entry
 unless the manifest says otherwise.
 
@@ -40,12 +47,14 @@ wrong subject or at the wrong time, `medium` when a control is absent
 but its absence is survivable, `low` for a gap that costs evidence
 rather than safety, `info` for something worth stating in a report.
 
+Override with `--policy`; an override is recorded in the finding.
+
 ## confidence
 
 | value | means |
 |---|---|
 | `declared` | the manifest says so |
-| `observed` | the tool looked at something real: introspection, a trace |
+| `observed` | the tool looked at something real: a tools/list dump, a trace |
 | `inferred` | a heuristic, e.g. a tool named like an egress path |
 
 An `inferred` finding is a question for the reader, not a conclusion,
